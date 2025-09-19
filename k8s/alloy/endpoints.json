@@ -1,0 +1,11 @@
+{
+    "metrics": {
+        "url": "http://prom-stack-kube-prometheus-prometheus:9090/api/v1/push"
+    },
+    "logs": {
+        "url": "http://loki-loki-distributed-gateway/loki/api/v1/push"
+    },
+    "traces": {
+        "url": "http://tempo-distributor:3200"
+    }
+}

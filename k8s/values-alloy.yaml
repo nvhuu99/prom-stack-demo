@@ -1,0 +1,36 @@
+controller:
+  volumes:
+    extra:
+      - name: endpoints
+        configMap:
+          name: alloy-endpoints
+
+alloy:
+  mounts:
+    extra:
+      - name: endpoints
+        mountPath: /etc/alloy/endpoints/
+  
+  configMap:
+    create: false
+    name: alloy-config
+    key: config.alloy
+
+  extraPorts:
+    - name: "otlphttp"
+      port: 4318
+      targetPort: 4318
+    - name: "otlpgrpc"
+      port: 4317
+      targetPort: 4317
+    - name: "loki"
+      port: 3100
+      targetPort: 3100
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 100m
+      memory: 256Mi

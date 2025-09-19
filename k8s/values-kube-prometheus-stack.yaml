@@ -1,0 +1,27 @@
+grafana:
+  admin:
+    existingSecret: grafana-admin
+    userKey: admin-user
+    passwordKey: admin-password
+
+  additionalDataSources:
+    - name: Loki
+      uid: loki
+      type: loki
+      url: http://loki-loki-distributed-gateway
+      isDefault: false
+
+    - name: Tempo
+      uid: tempo
+      type: tempo
+      url: http://tempo-query-frontend:3200
+      isDefault: false
+      # jsonData:
+      #   tracesToLogsV2:
+      #     datasourceUid: loki
+      #   lokiSearch:
+      #     datasourceUid: loki
+      #   tracesToMetrics:
+      #     datasourceUid: prom
+      #   serviceMap:
+      #     datasourceUid: prom

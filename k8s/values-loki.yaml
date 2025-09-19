@@ -1,0 +1,28 @@
+defaultPvc: &defaultPvc
+  enabled: true
+  type: pvc
+  size: 2Gi
+
+defaultResources: &defaultResources
+  requests: { cpu: 20m, memory: 64Mi }
+  limits: { cpu: 40m, memory: 128Mi }
+
+ingester:
+  replicas: 1
+  persistence: *defaultPvc
+  resources: *defaultResources
+distributor:
+  replicas: 1
+  resources: *defaultResources
+querier:
+  replicas: 1
+  resources: *defaultResources
+queryFrontend:
+  replicas: 1
+  resources: *defaultResources
+gateway:
+  replicas: 1
+  resources: *defaultResources
+compactor:
+  replicas: 1
+  resources: *defaultResources
