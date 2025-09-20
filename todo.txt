@@ -1,0 +1,13 @@
+install alloy: aborted ⛔
+install prom + grafana, container metric can be display ✅
+install tempo grafana can connect to tempo ✅
+install loki, grafana can connect to loki ✅
+use the webserver to send logs ✅
+make a simple webserver ✅
+grafana can see traces, logs, and span-metric ✅
+span metrics ✅
+temporary disable unecessary components (alertmanager) ✅
+set resources limit ✅
+use grafana dashboard to monitoring service resources, adjust proper resources ✅
+use k6 to simulate high loads (with random error), monitoring & adjust resources ✅
+span metrics: request latency p95+p5, request rate ✅
