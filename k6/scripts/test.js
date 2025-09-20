@@ -4,7 +4,7 @@ export const options = {
   scenarios: {
     demo_web: {
       executor: "constant-arrival-rate",
-      rate: 100,
+      rate: 10,
       timeUnit: "1s",
       duration: "1h",
       preAllocatedVUs: 10,
@@ -19,5 +19,5 @@ export const options = {
 }
 
 export default function () {
-  http.get(`http://localhost:8080/`)
+  http.get(`http://demo-service:8080/`)
 }

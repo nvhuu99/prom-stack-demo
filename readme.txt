@@ -12,15 +12,14 @@
 	kubectl create namespace monitoring
 	kubectl config set-context --current --namespace monitoring
 
-### Create configs and secrets:
-
-	kubectl delete secret grafana-admin
-	kubectl create secret generic grafana-admin --from-literal=admin-user=admin --from-literal=admin-password=admin
-
-	kubectl delete configmap monitoring-endpoints
-	kubectl apply -f k8s/configmap/monitoring-endpoints.yaml
 
 ### Install helm charts:
+
+  # create configs and secrets:
+	kubectl delete secret grafana-admin
+	kubectl create secret generic grafana-admin --from-literal=admin-user=admin --from-literal=admin-password=admin
+	kubectl delete configmap monitoring-endpoints
+	kubectl apply -f k8s/configmap/monitoring-endpoints.yaml
 
 	# clean
 	kubectl delete all --all -n monitoring
@@ -31,30 +30,34 @@
 	helm repo update
 	
 	# install kube-prometheus-stack (included Grafana)
-	helm install prom-stack prometheus-community/kube-prometheus-stack -f k8s/values-kube-prometheus-stack.yaml --timeout 10m0s
+	helm install prom-stack prometheus-community/kube-prometheus-stack \
+	  -f k8s/values-kube-prometheus-stack.yaml --timeout 10m0s
 
 	# install Tempo (tracing)
-	helm install tempo grafana/tempo-distributed -f k8s/values-tempo.yaml
+	helm install tempo grafana/tempo-distributed \
+	  -f k8s/values-tempo.yaml
 
 	# install Loki (logs)
-	helm install loki grafana/loki-distributed -f k8s/values-loki.yaml
+	helm install loki grafana/loki-distributed \
+	  -f k8s/values-loki.yaml
 
 	# verify resources
 	kubectl get all -l app.kubernetes.io/instance=prom-stack
 	kubectl get all -l app.kubernetes.io/name=tempo
 	kubectl get all -l app.kubernetes.io/name=loki-distributed
 
-### Deploy SpringBoot:
+### Deploy SpringBoot & K6 load simulator:
 
-	# build image
+	# spring boot
 	docker build -t demo-observability/spring .
 	kind load docker-image demo-observability/spring
-	
-	# install
-	kubectl apply -f k8s/demo/spring-app.yaml
-	
-	# verify
+	kubectl apply -f k8s/spring-app.yaml
 	kubectl get all -l app=demo
+
+	# k6
+  kubectl delete configmap k6-script
+  kubectl create configmap k6-script --from-file=k6/scripts/test.js
+	kubectl apply -f k8s/k6.yaml
 
 ### Port forwad:
 

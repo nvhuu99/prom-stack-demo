@@ -1,11 +1,35 @@
+minimalPvc: &minimalPvc
+  enabled: true
+  type: pvc
+  size: 2Gi
+
+defaultPvc: &defaultPvc
+  enabled: true
+  type: pvc
+  size: 5Gi
+
+minimalResources: &minimalResources
+  requests: { cpu: 25m, memory: 32Mi }
+  limits: { cpu: 50m, memory: 64Mi }
+
+defaultResources: &defaultResources
+  requests: { cpu: 50m, memory: 64Mi }
+  limits: { cpu: 100m, memory: 128Mi }
+
+minimumResources: &minimumResources
+  requests: { cpu: 100m, memory: 256Mi }
+  limits: { cpu: 200m, memory: 512Mi }
+
 alertmanager:
   enabled: false
 
 prometheus:
   prometheusSpec:
     enableRemoteWriteReceiver: true
+    resources: *minimumResources
 
 grafana:
+  resources: *minimumResources
   admin:
     existingSecret: grafana-admin
     userKey: admin-user
@@ -23,12 +47,12 @@ grafana:
       type: tempo
       url: http://tempo-query-frontend:3200
       isDefault: false
-#      jsonData:
-#        tracesToLogsV2:
-#          datasourceUid: loki
-#        lokiSearch:
-#          datasourceUid: loki
-#        tracesToMetrics:
-#          datasourceUid: prom
-#        serviceMap:
-#          datasourceUid: prom
+
+prometheusOperator:
+  resources: *defaultResources
+
+kube-state-metrics:
+  resources: *minimalResources
+
+prometheus-node-exporter:
+  resources: *minimalResources
