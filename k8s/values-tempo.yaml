@@ -7,23 +7,52 @@ defaultResources: &defaultResources
   requests: { cpu: 20m, memory: 64Mi }
   limits: { cpu: 40m, memory: 128Mi }
 
+traces:
+  otlp:
+    http:
+      enabled: true
+    grpc:
+      enabled: true
+
 ingester:
   replicas: 1
   persistence: *defaultPvc
   resources: *defaultResources
   config:
     trace_idle_period: 30s
+    replication_factor: 1
+
 compactor:
   replicas: 1
   resources: *defaultResources
   config:
     block_retention: 2d
+
 distributor:
   replicas: 1
   resources: *defaultResources
+
 querier:
   replicas: 1
   resources: *defaultResources
+
 queryFrontend:
   replicas: 1
   resources: *defaultResources
+
+overrides:
+  defaults:
+    metrics_generator:
+      processors:
+        - span-metrics
+        - service-graphs
+metricsGenerator:
+  enabled: true
+  replica: 1
+  resources: *defaultResources
+  config:
+    storage:
+      remote_write:
+        - name: prometheus
+          send_exemplars: true
+          url: http://prom-stack-kube-prometheus-prometheus:9090/api/v1/write

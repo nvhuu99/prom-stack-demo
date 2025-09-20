@@ -12,7 +12,7 @@ management:
       probability: 1.0
   otlp:
     tracing:
-      endpoint: ${OTLP_TRACING_ENPOINT}
+      endpoint: ${TEMPO_PUSH_API_ENDPOINT}
     metrics:
       export:
         enabled: false

@@ -1,3 +1,10 @@
+alertmanager:
+  enabled: false
+
+prometheus:
+  prometheusSpec:
+    enableRemoteWriteReceiver: true
+
 grafana:
   admin:
     existingSecret: grafana-admin
@@ -16,12 +23,12 @@ grafana:
       type: tempo
       url: http://tempo-query-frontend:3200
       isDefault: false
-      # jsonData:
-      #   tracesToLogsV2:
-      #     datasourceUid: loki
-      #   lokiSearch:
-      #     datasourceUid: loki
-      #   tracesToMetrics:
-      #     datasourceUid: prom
-      #   serviceMap:
-      #     datasourceUid: prom
+#      jsonData:
+#        tracesToLogsV2:
+#          datasourceUid: loki
+#        lokiSearch:
+#          datasourceUid: loki
+#        tracesToMetrics:
+#          datasourceUid: prom
+#        serviceMap:
+#          datasourceUid: prom

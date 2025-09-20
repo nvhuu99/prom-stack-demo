@@ -1,0 +1,153 @@
+In a distributed deployment with local-only storage, metrics-generator can't access the ingester's local blocks, so it never sees spans to convert into metrics — hence silence in logs and no remote-write attempts.
+=> Maintainer confirm that this is not an issue.
+
+$ kubectl -n monitoring get configmap tempo-config -o yaml | grep -nA4 "metrics_generator" || true
+76:    metrics_generator:
+77-      metrics_ingestion_time_range_slack: 30s
+78-      processor:
+79-        service_graphs:
+80-          dimensions: []
+--
+129:        metrics_generator:
+130-          processors:
+131-          - span-metrics
+132-          - service-graphs
+133-      per_tenant_override_config: /runtime-config/overrides.yaml
+
+
+$ kubectl -n monitoring exec -it $POD_TMP -- sh -c "wget -qO- http://localhost:3200/metrics | grep -E 'span|metrics_generator|processed|remote_write' || true"
+# HELP go_memstats_mspan_inuse_bytes Number of bytes in use by mspan structures. Equals to /memory/classes/metadata/mspan/inuse:bytes.
+# TYPE go_memstats_mspan_inuse_bytes gauge
+go_memstats_mspan_inuse_bytes 369280
+# HELP go_memstats_mspan_sys_bytes Number of bytes used for mspan structures obtained from system. Equals to /memory/classes/metadata/mspan/inuse:bytes + /memory/classes/metadata/mspan/free:bytes.
+# TYPE go_memstats_mspan_sys_bytes gauge
+go_memstats_mspan_sys_bytes 391680
+# HELP tempo_distributor_metrics_generator_clients The current number of metrics-generator clients.
+# TYPE tempo_distributor_metrics_generator_clients gauge
+tempo_distributor_metrics_generator_clients 0
+tempo_limits_defaults{limit_name="metrics_generator_max_active_series"} 0
+# HELP tempo_metrics_generator_active_processors The active processors per tenant
+# TYPE tempo_metrics_generator_active_processors gauge
+tempo_metrics_generator_active_processors{processor="host-info",tenant="single-tenant"} 0
+tempo_metrics_generator_active_processors{processor="local-blocks",tenant="single-tenant"} 0
+tempo_metrics_generator_active_processors{processor="service-graphs",tenant="single-tenant"} 1
+tempo_metrics_generator_active_processors{processor="span-metrics",tenant="single-tenant"} 1
+tempo_metrics_generator_active_processors{processor="span-metrics-count",tenant="single-tenant"} 0
+tempo_metrics_generator_active_processors{processor="span-metrics-latency",tenant="single-tenant"} 0
+tempo_metrics_generator_active_processors{processor="span-metrics-size",tenant="single-tenant"} 0
+# HELP tempo_metrics_generator_bytes_received_total The total number of proto bytes received per tenant
+# TYPE tempo_metrics_generator_bytes_received_total counter
+tempo_metrics_generator_bytes_received_total{tenant="single-tenant"} 14220
+# HELP tempo_metrics_generator_enqueue_time_seconds_total The total amount of time spent waiting to enqueue for processing
+# TYPE tempo_metrics_generator_enqueue_time_seconds_total counter
+tempo_metrics_generator_enqueue_time_seconds_total 0
+# HELP tempo_metrics_generator_processor_local_blocks_complete_queue_length Number of wal blocks waiting for completion
+# TYPE tempo_metrics_generator_processor_local_blocks_complete_queue_length gauge
+tempo_metrics_generator_processor_local_blocks_complete_queue_length 0
+# HELP tempo_metrics_generator_processor_local_blocks_failed_flushes_total The total number of failed flushes
+# TYPE tempo_metrics_generator_processor_local_blocks_failed_flushes_total counter
+tempo_metrics_generator_processor_local_blocks_failed_flushes_total 0
+# HELP tempo_metrics_generator_processor_service_graphs_dropped_spans Number of spans dropped when trying to add edges
+# TYPE tempo_metrics_generator_processor_service_graphs_dropped_spans counter
+tempo_metrics_generator_processor_service_graphs_dropped_spans{tenant="single-tenant"} 0
+# HELP tempo_metrics_generator_processor_service_graphs_edges Total number of unique edges
+# TYPE tempo_metrics_generator_processor_service_graphs_edges counter
+tempo_metrics_generator_processor_service_graphs_edges{tenant="single-tenant"} 40
+# HELP tempo_metrics_generator_processor_service_graphs_expired_edges Number of edges that expired before finding its matching span
+# TYPE tempo_metrics_generator_processor_service_graphs_expired_edges counter
+tempo_metrics_generator_processor_service_graphs_expired_edges{tenant="single-tenant"} 40
+# HELP tempo_metrics_generator_registry_active_series The active series per tenant
+# TYPE tempo_metrics_generator_registry_active_series gauge
+tempo_metrics_generator_registry_active_series{tenant="single-tenant"} 40
+# HELP tempo_metrics_generator_registry_collections_failed_total The total amount of failed metrics collections per tenant
+# TYPE tempo_metrics_generator_registry_collections_failed_total counter
+tempo_metrics_generator_registry_collections_failed_total{tenant="single-tenant"} 0
+# HELP tempo_metrics_generator_registry_collections_total The total amount of metrics collections per tenant
+# TYPE tempo_metrics_generator_registry_collections_total counter
+tempo_metrics_generator_registry_collections_total{tenant="single-tenant"} 39
+# HELP tempo_metrics_generator_registry_max_active_series The maximum active series per tenant
+# TYPE tempo_metrics_generator_registry_max_active_series gauge
+tempo_metrics_generator_registry_max_active_series{tenant="single-tenant"} 0
+# HELP tempo_metrics_generator_registry_series_added_total The total amount of series created per tenant
+# TYPE tempo_metrics_generator_registry_series_added_total counter
+tempo_metrics_generator_registry_series_added_total{tenant="single-tenant"} 40
+# HELP tempo_metrics_generator_registry_series_limited_total The total amount of series not created because of limits per tenant
+# TYPE tempo_metrics_generator_registry_series_limited_total counter
+tempo_metrics_generator_registry_series_limited_total{tenant="single-tenant"} 0
+# HELP tempo_metrics_generator_registry_series_removed_total The total amount of series removed after they have become stale per tenant
+# TYPE tempo_metrics_generator_registry_series_removed_total counter
+tempo_metrics_generator_registry_series_removed_total{tenant="single-tenant"} 0
+# HELP tempo_metrics_generator_spans_discarded_total The total number of discarded spans received per tenant
+# TYPE tempo_metrics_generator_spans_discarded_total counter
+tempo_metrics_generator_spans_discarded_total{reason="invalid_utf8",tenant="single-tenant"} 0
+tempo_metrics_generator_spans_discarded_total{reason="outside_metrics_ingestion_slack",tenant="single-tenant"} 0
+tempo_metrics_generator_spans_discarded_total{reason="span_metrics_filtered",tenant="single-tenant"} 0
+# HELP tempo_metrics_generator_spans_received_total The total number of spans received per tenant
+# TYPE tempo_metrics_generator_spans_received_total counter
+tempo_metrics_generator_spans_received_total{tenant="single-tenant"} 40
+# HELP tempo_querier_metrics_generator_clients The current number of generator clients.
+# TYPE tempo_querier_metrics_generator_clients gauge
+tempo_querier_metrics_generator_clients 0
+
+$ kubectl -n monitoring logs $POD_TMP | grep -i remote || true
+time=2025-09-20T03:58:53.939Z level=INFO source=/home/runner/work/tempo/tempo/vendor/github.com/prometheus/prometheus/tsdb/wlog/watcher.go:225 msg="Starting WAL watcher" tenant=single-tenant component=remote remote_name=prometheus url=http://prom-stack-kube-prometheus-prometheus:9090/api/v1/write queue=prometheus
+time=2025-09-20T03:58:53.939Z level=INFO source=/home/runner/work/tempo/tempo/vendor/github.com/prometheus/prometheus/storage/remote/metadata_watcher.go:90 msg="Starting scraped metime=2025-09-20T03:58:53.939Z level=INFO source=/home/runner/work/tempo/tempo/vendor/github.com/prometheus/prometheus/storage/remote/metadata_watcher.go:90 msg="Starting scraped metadata watcher" tenant=single-tenant component=remote remote_name=prometheus url=http://prom-stack-kube-prometheus-prometheus:9090/api/v1/write
+time=2025-09-20T03:58:53.940Z level=INFO source=/home/runner/work/tempo/tempo/vendor/github.com/prometheus/prometheus/tsdb/wlog/watcher.go:277 msg="Replaying WAL" tenant=single-tenant component=remote remote_name=prometheus url=http://prom-stack-kube-prometheus-prometheus:9090/api/v1/write queue=prometheus
+time=2025-09-20T03:58:53.940Z level=ERROR source=/home/runner/work/tempo/tempo/vendor/github.com/prometheus/prometheus/tsdb/wlog/watcher.go:254 msg="error tailing WAL" tenant=single-tenant component=remote remote_name=prometheus url=http://prom-stack-kube-prometheus-prometheus:9090/api/v1/write err="failed to find segment for index"
+time=2025-09-20T03:59:13.940Z level=INFO source=/home/runner/work/tempo/tempo/vendor/github.com/prometheus/prometheus/tsdb/wlog/watcher.go:523 msg="Done replaying WAL" tenant=single-tenant component=remote remote_name=prometheus url=http://prom-stack-kube-prometheus-prometheus:9090/api/v1/write duration=15.00074668s
+
+$ kubectl -n monitoring logs $POD_TMP | grep -i 'span-metrics\|service-graph\|processor' || true
+level=warn ts=2025-09-20T04:01:25.842135478Z caller=server.go:1208 method=/tempopb.MetricsGenerator/QueryRange duration=52.011µs msg=gRPC err="localblocks processor not found"
+level=warn ts=2025-09-20T04:01:26.195064203Z caller=server.go:1208 method=/tempopb.MetricsGenerator/QueryRange duration=44.289µs msg=gRPC err="localblocks processor not found"
+
+kubectl -n monitoring get configmap tempo-config -o yaml \
+>   | grep -nE "wal|queue|wlog|remote_write" -n -C2 || true
+114-          store: memberlist
+115-      storage:
+116:        path: /var/tempo/wal
+117:        remote_write:
+118-        - name: prometheus
+119-          send_exemplars: true
+120-          url: http://prom-stack-kube-prometheus-prometheus:9090/api/v1/write
+121:        remote_write_add_org_id_header: true
+122:        remote_write_flush_deadline: 1m
+123:        wal: null
+124-      traces_storage:
+125-        path: /var/tempo/traces
+--
+173-        pool:
+174-          max_workers: 400
+175:          queue_depth: 20000
+176-        search:
+177-          prefetch_trace_count: 1000
+178:        wal:
+179:          path: /var/tempo/wal
+180-    usage_report:
+181-      reporting_enabled: true
+
+
+$ kubectl -n monitoring exec -it $POD -- wget -qO- http://localhost:3200/metrics | grep -E "tempo_metrics_generator_remote_write_samples_total"
+
+$ kubectl -n monitoring exec -it $POD -- wget -qO- http://localhost:3200/metrics | grep -E "span|remote_write"
+# HELP go_memstats_mspan_inuse_bytes Number of bytes in use by mspan structures. Equals to /memory/classes/metadata/mspan/inuse:bytes.
+# TYPE go_memstats_mspan_inuse_bytes gauge
+go_memstats_mspan_inuse_bytes 333280
+# HELP go_memstats_mspan_sys_bytes Number of bytes used for mspan structures obtained from system. Equals to /memory/classes/metadata/mspan/inuse:bytes + /memory/classes/metadata/mspan/free:bytes.
+# TYPE go_memstats_mspan_sys_bytes gauge
+go_memstats_mspan_sys_bytes 391680
+tempo_metrics_generator_active_processors{processor="span-metrics",tenant="single-tenant"} 1
+tempo_metrics_generator_active_processors{processor="span-metrics-count",tenant="single-tenant"} 0
+tempo_metrics_generator_active_processors{processor="span-metrics-latency",tenant="single-tenant"} 0
+tempo_metrics_generator_active_processors{processor="span-metrics-size",tenant="single-tenant"} 0
+# HELP tempo_metrics_generator_processor_service_graphs_dropped_spans Number of spans dropped when trying to add edges
+# TYPE tempo_metrics_generator_processor_service_graphs_dropped_spans counter
+tempo_metrics_generator_processor_service_graphs_dropped_spans{tenant="single-tenant"} 0
+# HELP tempo_metrics_generator_processor_service_graphs_expired_edges Number of edges that expired before finding its matching span
+# HELP tempo_metrics_generator_spans_discarded_total The total number of discarded spans received per tenant
+# TYPE tempo_metrics_generator_spans_discarded_total counter
+tempo_metrics_generator_spans_discarded_total{reason="invalid_utf8",tenant="single-tenant"} 0
+tempo_metrics_generator_spans_discarded_total{reason="outside_metrics_ingestion_slack",tenant="single-tenant"} 0
+tempo_metrics_generator_spans_discarded_total{reason="span_metrics_filtered",tenant="single-tenant"} 0
+# HELP tempo_metrics_generator_spans_received_total The total number of spans received per tenant
+# TYPE tempo_metrics_generator_spans_received_total counter
+tempo_metrics_generator_spans_received_total{tenant="single-tenant"} 19

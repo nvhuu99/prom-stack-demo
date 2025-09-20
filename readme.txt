@@ -2,14 +2,13 @@
 
 * List of metrics: https://kubernetes.io/docs/reference/instrumentation/metrics/#list-of-stable-kubernetes-metrics
 * LGTM Helm: https://github.com/grafana/helm-charts/tree/main/charts/lgtm-distributed
+* Loki Helm: https://github.com/grafana/helm-charts/blob/main/charts/loki-distributed/values.yaml
 * Kube Prom Stack: https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack
-* Alloy Helm: https://github.com/grafana/alloy/tree/main/operations/helm/charts/alloy
 
 # Setup:
 
 ### Prepare:
 
-	cd k8s
 	kubectl create namespace monitoring
 	kubectl config set-context --current --namespace monitoring
 
@@ -18,9 +17,8 @@
 	kubectl delete secret grafana-admin
 	kubectl create secret generic grafana-admin --from-literal=admin-user=admin --from-literal=admin-password=admin
 
-	kubectl delete configmap alloy-config alloy-endpoints
-	kubectl create configmap alloy-config --from-file alloy/config.alloy
-	kubectl create configmap alloy-endpoints --from-file alloy/endpoints.json
+	kubectl delete configmap monitoring-endpoints
+	kubectl apply -f k8s/configmap/monitoring-endpoints.yaml
 
 ### Install helm charts:
 
@@ -33,27 +31,34 @@
 	helm repo update
 	
 	# install kube-prometheus-stack (included Grafana)
-	helm install prom-stack prometheus-community/kube-prometheus-stack -f values-kube-prometheus-stack.yaml --timeout 10m0s
+	helm install prom-stack prometheus-community/kube-prometheus-stack -f k8s/values-kube-prometheus-stack.yaml --timeout 10m0s
 
 	# install Tempo (tracing)
-	helm install tempo grafana/tempo-distributed -f values-tempo.yaml
+	helm install tempo grafana/tempo-distributed -f k8s/values-tempo.yaml
 
 	# install Loki (logs)
-	helm install loki grafana/loki-distributed -f values-loki.yaml
-
-	# install Alloy (otlp collector)
-	helm install alloy grafana/alloy -f values-alloy.yaml
+	helm install loki grafana/loki-distributed -f k8s/values-loki.yaml
 
 	# verify resources
 	kubectl get all -l app.kubernetes.io/instance=prom-stack
 	kubectl get all -l app.kubernetes.io/name=tempo
 	kubectl get all -l app.kubernetes.io/name=loki-distributed
-	kubectl get all -l app.kubernetes.io/name=alloy
+
+### Deploy SpringBoot:
+
+	# build image
+	docker build -t demo-observability/spring .
+	kind load docker-image demo-observability/spring
+	
+	# install
+	kubectl apply -f k8s/demo/spring-app.yaml
+	
+	# verify
+	kubectl get all -l app=demo
 
 ### Port forwad:
 
 	kubectl port-forward svc/prom-stack-grafana 30000:3000
-	kubectl port-forward svc/alloy 30001:3000
 
 ### Run load simulation (webserver):
 
@@ -68,11 +73,10 @@
 	curl -s -H "Authorization: Bearer $GRAFANA_API_KEY" http://localhost:3000/api/dashboards/uid/<uid> | jq . > my-dashboard.json
 
 	# Update helm charts
-	helm upgrade prom-stack prometheus-community/kube-prometheus-stack -f values-kube-prometheus-stack.yaml
-	helm upgrade tempo grafana/tempo-distributed -f values-tempo.yaml
-	helm upgrade loki grafana/loki-distributed -f values-loki.yaml
-	helm upgrade alloy grafana/alloy -f values-alloy.yaml
+	helm upgrade prom-stack prometheus-community/kube-prometheus-stack -f k8s/values-kube-prometheus-stack.yaml
+	helm upgrade tempo grafana/tempo-distributed -f k8s/values-tempo.yaml
+	helm upgrade loki grafana/loki-distributed -f k8s/values-loki.yaml
 
 	# Restart pod when necessary
-	kubectl rollout restart deploy lgtm-grafana
-	kubectl rollout restart daemonset -l app.kubernetes.io/name=alloy
+	kubectl rollout restart deploy prom-stack
+	kubectl rollout restart pods tempo

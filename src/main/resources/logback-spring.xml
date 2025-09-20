@@ -1,12 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
     <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
         <http>
-            <url>http://localhost:30001/loki/api/v1/push</url>
+            <url>${LOKI_PUSH_API_ENDPOINT}</url>
         </http>
         <format>
             <label>
-                <pattern>app=${name},host=${HOSTNAME},level=%level</pattern>
+                <pattern>app=${spring.application.name},host=${HOSTNAME},level=%level</pattern>
                 <readMarkers>true</readMarkers>
             </label>
             <message>
@@ -14,16 +19,18 @@
                     {
                         "level":"%level",
                         "class":"%logger{36}",
-                        "thread":"%thread",
+
                         "message": "%message",
                         "requestId": "%X{X-Request-ID}"
                     }
                 </pattern>
+                <pattern>{"level":"%level", "thread":"%thread", "logger":"%logger", "message":"%message" }</pattern>
             </message>
         </format>
     </appender>
 
     <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
         <appender-ref ref="LOKI"/>
     </root>
 </configuration>

@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: monitoring-endpoints
+data:
+  # OTLP_HTTP_TRACING_ENDPOINT: http://alloy:4318/v1/traces
+  PROMETHEUS_REMOTE_WRITE_ENDPOINT: http://prom-stack-kube-prometheus-prometheus:9090/api/v1/write
+  TEMPO_PUSH_API_ENDPOINT: http://tempo-distributor:4318/v1/traces
+  LOKI_PUSH_API_ENDPOINT: http://loki-loki-distributed-gateway/loki/api/v1/push

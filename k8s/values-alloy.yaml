@@ -1,20 +1,12 @@
-controller:
-  volumes:
-    extra:
-      - name: endpoints
-        configMap:
-          name: alloy-endpoints
-
 alloy:
-  mounts:
-    extra:
-      - name: endpoints
-        mountPath: /etc/alloy/endpoints/
-  
   configMap:
     create: false
     name: alloy-config
     key: config.alloy
+
+  envFrom:
+    - configMapRef:
+        name: monitoring-endpoints
 
   extraPorts:
     - name: "otlphttp"
